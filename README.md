@@ -25,3 +25,26 @@ Antes de começar, você precisará ter uma implementação do MPI instalada. Pa
 ```bash
 sudo apt update
 sudo apt install openmpi-bin libopenmpi-dev
+```
+
+## 🛠️ Como Compilar e Executar
+1. **Compilaçao** Use o compilador mpicc, que é um "wrapper" para o gcc e linka automaticamente as bibliotecas MPI.
+```bash
+# Onde:
+# -o media_global  -> Define o nome do arquivo executável
+# MediaMPI.c       -> O seu arquivo de código-fonte
+
+mpicc -o media_global MediaMPI.c
+
+```
+
+2. **Execução**
+* `-np <N>`: O número de processos que você deseja usar.
+* `./media_global`: O nome do seu executável.
+* `<M>`: O número de elementos aleatórios que cada processo deve gerar (o argumento argv[1] esperado pelo main).
+
+**Formato do comando:**
+```bash
+mpirun -np <N_PROCESSOS> ./media_global <N_ELEMENTOS_POR_PROCESSO>
+
+```
