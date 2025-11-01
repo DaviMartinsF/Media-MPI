@@ -66,5 +66,5 @@ mpirun -np 4 ./media_global 10000
 
 ```
 
-## ✒️ Como Compilar e Executar
+## ✒️ Autor
 * Davi Martins Figueiredo - 10374878
