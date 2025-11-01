@@ -45,6 +45,23 @@ mpicc -o media_global MediaMPI.c
 
 **Formato do comando:**
 ```bash
-mpirun -np <N_PROCESSOS> ./media_global <N_ELEMENTOS_POR_PROCESSO>
+mpirun -np `<N_PROCESSOS> ./media_global <N_ELEMENTOS_POR_PROCESSO>
+
+```
+**Exemplo Pratico**
+```bash
+mpirun -np 4 ./media_global 10000
+
+```
+**Exemplo de Saida**
+```bash
+[Processo 1] Soma local = 4987.123456, média local = 0.498712
+[Processo 3] Soma local = 5012.456789, média local = 0.501246
+[Processo 0] Soma local = 4999.987654, média local = 0.499999
+[Processo 2] Soma local = 5001.654321, média local = 0.500165
+--------------------------------------------------
+[Processo 0] Soma total = 20001.222220
+[Processo 0] Média global = 0.500031
+--------------------------------------------------
 
 ```
