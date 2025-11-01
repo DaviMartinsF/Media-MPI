@@ -1,30 +1,43 @@
+//Davi Martins Figueiredo - 10374878
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
 #include <time.h>
 
-// Função que cria um vetor com valores aleatórios entre 0 e 1
+/**
+ * @brief Cria um vetor de números aleatórios entre 0.0 e 1.0.
+ *
+ * @param num_elements O número de elementos a serem gerados.
+ * @return float* Um ponteiro para o vetor alocado dinamicamente.
+ */
 float *create_random_numbers(int num_elements) {
     float *random_numbers = (float *)malloc(sizeof(float) * num_elements);
     for (int i = 0; i < num_elements; ++i) {
-        random_numbers[i] = (rand() / (float)RAND_MAX);  // número aleatório entre 0 e 1
+        random_numbers[i] = (rand() / (float)RAND_MAX); // número aleatório entre 0 e 1
     }
     return random_numbers;
 }
 
 int main(int argc, char* argv[]) {
 
-    int num_elems_local_array = atoi(argv[1]);  // Converte o argumento para inteiro
-    int rank, number_processes;
-    float local_sum = 0;     // Soma dos elementos do processo atual
-    float global_sum = 0;    // Soma total de todos os processos
+    if (argc != 2) {
+        fprintf(stderr, "Uso: mpirun -np <N_PROCESSOS> %s <N_ELEMENTOS_POR_PROCESSO>\n", argv[0]);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+        return 1;
+    }
 
-    MPI_Init(NULL, NULL);  // Inicializa o ambiente MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);  // Obtém o rank do processo atual
-    MPI_Comm_size(MPI_COMM_WORLD, &number_processes);  // Obtém o total de processos
+    int num_elems_local_array = atoi(argv[1]); // Converte o argumento para inteiro
+    int rank, number_processes;
+    float local_sum = 0;    // Soma dos elementos do processo atual
+    float global_sum = 0;   // Soma total de todos os processos
+
+    MPI_Init(NULL, NULL); // Inicializa o ambiente MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Obtém o rank do processo atual
+    MPI_Comm_size(MPI_COMM_WORLD, &number_processes); // Obtém o total de processos
 
     // Gera números aleatórios únicos para cada processo (semente baseada no rank)
-    srand(time(NULL) * rank);
+    // Multiplicar por rank é bom, adicionar rank é mais seguro caso time(NULL) seja o mesmo.
+    srand(time(NULL) + rank); 
     float *random_numbers = create_random_numbers(num_elems_local_array);
 
     // Calcula a soma local dos elementos
@@ -33,22 +46,40 @@ int main(int argc, char* argv[]) {
     }
 
     // Exibe a soma e média locais
-    printf("Soma local do processo %d = %f, média = %f\n", rank, local_sum,
+    printf("[Processo %d] Soma local = %f, média local = %f\n", rank, local_sum,
            local_sum / num_elems_local_array);
 
-    // Reduz as somas locais em uma soma global no processo 0
-    MPI_Reduce(&local_sum, &global_sum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+    // --- MODIFICAÇÃO PARA O DESAFIO ---
+    // Reduz as somas locais em uma soma global E distribui o resultado
+    // para TODOS os processos.
+    MPI_Allreduce(&local_sum,     // Dado de envio (cada processo envia sua soma)
+                  &global_sum,    // Buffer de recebimento (todos recebem a soma total)
+                  1,              // Número de elementos a enviar/receber
+                  MPI_FLOAT,      // Tipo do dado
+                  MPI_SUM,        // Operação (soma)
+                  MPI_COMM_WORLD); // Comunicador
 
-    // O processo 0 calcula e exibe a média global
+    // Agora, todos os processos (não apenas o rank 0) têm a global_sum correta.
+    // Todos os processos podem calcular a média global.
+    float media_global = global_sum / (num_elems_local_array * number_processes);
+
+    // Sincroniza os processos para garantir que as impressões locais
+    // apareçam antes da impressão global.
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // O processo 0 exibe a média global
+    // (Poderíamos fazer todos exibirem, mas geralmente só o rank 0 o faz
+    // para evitar saídas duplicadas e confusas).
     if (rank == 0) {
-        printf("Soma total = %f, média global = %f\n",
-               global_sum, global_sum / (num_elems_local_array * number_processes));
+        printf("--------------------------------------------------\n");
+        printf("[Processo %d] Soma total = %f\n", rank, global_sum);
+        printf("[Processo %d] Média global = %f\n", rank, media_global);
+        printf("--------------------------------------------------\n");
     }
 
-    free(random_numbers);  // Libera a memória alocada
+    free(random_numbers); // Libera a memória alocada
 
-    MPI_Barrier(MPI_COMM_WORLD);  // Sincroniza todos os processos antes de finalizar
-    MPI_Finalize();  // Finaliza o ambiente MPI
+    MPI_Finalize(); // Finaliza o ambiente MPI
 
     return 0;
 }
